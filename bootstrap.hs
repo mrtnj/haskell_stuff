@@ -21,29 +21,26 @@ generateBootstrap originalData nBootstraps =
     applyShuffleOrder originalData
         (generateShuffleOrder (length originalData) randomNumbers nBootstraps)
 
+
+generateShuffleOrder nData randomNumbers 0 = []
 generateShuffleOrder nData randomNumbers nBootstraps = 
-    if nBootstraps > 0 then 
-        [take nData randomNumbers] ++
-          generateShuffleOrder nData (drop nData randomNumbers)(nBootstraps-1)
-    else []
-
+    [take nData randomNumbers] ++
+        generateShuffleOrder nData (drop nData randomNumbers)(nBootstraps-1)
+    
+    
 -- Apply shuffle to a single bootstrap replicate.
-applyShuffle x shuffle = 
-    if shuffle == [] then
-        []
-    else
-        [x !! head shuffle] ++ applyShuffle x (tail shuffle)
-        
-        
-applyShuffleOrder x shuffleOrder =
-    if shuffleOrder == [] then
-        []
-    else
-        [applyShuffle x (head shuffleOrder)] ++
-          applyShuffleOrder x (tail shuffleOrder)
+applyShuffle x [] = []
+applyShuffle x (index:indices) = 
+    [x !! index] ++ applyShuffle x indices
 
 
-
+      
+applyShuffleOrder x [] = []
+applyShuffleOrder x (shuffle:shuffles) =
+    [applyShuffle x shuffle] ++
+        applyShuffleOrder x shuffles
+          
+          
           
 -- Quite useless main function
 main = do
