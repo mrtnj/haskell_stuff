@@ -7,6 +7,7 @@
 -- make a bootstrap comparison of means.
 
 import System.Random
+import Data.List.Split
 
 -- Input and seeding of the rng will be done with some monad later
 sample = [10,20,30]
@@ -18,33 +19,53 @@ randomNumbers = take 1000 (randomRs (0, (length sample - 1)) (mkStdGen 42))
 -- replicates.
 
 generateBootstrap originalData nBootstraps =
-    applyShuffleOrder originalData
-        (generateShuffleOrder (length originalData) randomNumbers nBootstraps)
+    applyShuffles originalData
+        (generateShuffles (length originalData) randomNumbers nBootstraps)
 
 
-generateShuffleOrder nData randomNumbers 0 = []
-generateShuffleOrder nData randomNumbers nBootstraps = 
+generateShuffles nData randomNumbers 0 = []
+generateShuffles nData randomNumbers nBootstraps = 
     [take nData randomNumbers] ++
-        generateShuffleOrder nData (drop nData randomNumbers)(nBootstraps-1)
+        generateShuffles nData (drop nData randomNumbers)(nBootstraps-1)
     
     
 -- Apply shuffle to a single bootstrap replicate.
-applyShuffle x [] = []
-applyShuffle x (index:indices) = 
-    [x !! index] ++ applyShuffle x indices
+applyShuffles x shuffles =
+    map applyShuffle shuffles
+        where applyShuffle  = map (x !!)
+    
 
+    
+    
+-- Functions for parsing lines into a sample
+someData = ["1,10 ", "1,20", "1,30"]
 
-      
-applyShuffleOrder x [] = []
-applyShuffleOrder x (shuffle:shuffles) =
-    [applyShuffle x shuffle] ++
-        applyShuffleOrder x shuffles
-          
-          
-          
+parseSample inData =
+    map parseLine (splitOn "\n" inData)
+        where parseLine = castNumbers . splitOn "," . filter (/= ' ')
+
+splitSample inData =
+    map f inData
+        where f x = (x !! 0, x !! 1)
+        
+castNumbers xs =
+    map readNumber xs
+        where readNumber x = read x::Int
+        
+separateSamples =
+    map snd
+
+        
+
 -- Quite useless main function
 main = do
     print "boot"
     print "will eventually bootstrap, if martin knows his stuff"
-    let boot = generateBootstrap sample 10
+    inData <- readFile "testdata.txt"
+    --let lines = parseFile inData
+    let aSample = splitSample (parseSample inData)
+    let a = separateSamples aSample
+    let boot = generateBootstrap a 10
     print boot
+    
+    
