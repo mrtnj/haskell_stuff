@@ -10,19 +10,19 @@ import System.Random
 import Data.List.Split
 import Data.List
 
--- Input and seeding of the rng will be done with some monad later
--- sample = [10,20,30]
 
+-- Functions for bootstrap replicates
 
 -- Make bootstrap replicates in two steps: make random draws of the data
 -- (with replacement), then apply them to the data to get bootstrap
 -- replicates.
-
 generateBootstrap originalData nBootstraps randomNumbers =
     applyShuffles originalData
         (generateShuffles (length originalData) randomNumbers nBootstraps)
 
 
+-- Take the appropriate number of random draws to generate the shuffle
+-- for a single bootstrap replicate.
 generateShuffles nData randomNumbers 0 = []
 generateShuffles nData randomNumbers nBootstraps = 
     [take nData randomNumbers] ++
@@ -38,20 +38,25 @@ applyShuffles x shuffles =
     
     
 -- Functions for parsing lines into a sample
--- someData = ["1,10 ", "1,20", "1,30"]
 
-parseSample inData =
-    map parseLine (splitOn "\n" inData)
+parseSample = separateSamples . formatSample . parseFile
+
+-- Parse a file of data.
+parseFile inFile =
+    map parseLine (splitOn "\n" inFile)
         where parseLine = castNumbers . splitOn "," . filter (/= ' ')
 
-splitSample inData =
-    map f inData
-        where f x = (x !! 0, x !! 1)
-        
+-- Read lists of strings to Float
 castNumbers xs =
     map readNumber xs
-        where readNumber x = read x::Int
+        where readNumber x = read x::Float
         
+-- Split lists of data into tuples of (indicator, sample value)
+formatSample inData =
+    map f inData
+        where f x = (x !! 0, x !! 1)
+
+-- Take the sample values out of tuples
 separateSamples =
     map snd
 
@@ -59,8 +64,10 @@ separateSamples =
     
 -- Functions to calculate statistics on bootstrap replicates
 
+-- Mean of a list
 mean x = realToFrac (sum x) / genericLength x
 
+-- Apply means to bootstrap replicates
 bootstrapMeans =
     map mean
 
@@ -69,25 +76,25 @@ bootstrapMeans =
 quantile q xs =
     sort xs !! (round (q * (genericLength xs - 1)))
 
+-- Pull out (0.025 and 0.975) quantiles
 bootstrapQuantiles xs =
     (quantile 0.025 xs, quantile 0.975 xs)
     
-
-
+    
+    
 -- Quite useless main function
 main = do
     print "boot"
     print "will eventually bootstrap, if martin knows his stuff"
     fileName <- getLine
     inData <- readFile fileName
-    let aSample = splitSample (parseSample inData)
-    let a = separateSamples aSample
-    print a
+    let aSample = parseSample inData
+    print aSample
     generator <- getStdGen
-    let randomNumbers = take (100 * length a) (randomRs (0, (length a - 1)) generator)
-    let boot = generateBootstrap a 100 randomNumbers
+    let randomNumbers = take (100 * length aSample) (randomRs (0, (length aSample - 1)) generator)
+    let boot = generateBootstrap aSample 100 randomNumbers
     let means = bootstrapMeans boot
-    let estimate = mean means
+    let estimate = mean aSample
     let quantiles = bootstrapQuantiles means
     --print boot
     --print means
